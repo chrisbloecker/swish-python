@@ -27,28 +27,33 @@ class SwishClientTestCase(unittest.TestCase):
 
     def test_create_payment_ecommerce(self):
         payer_alias = '467%i' % randint(1000000, 9999999)
+        the_uuid = str(uuid4()).replace("-","").upper()
         payment = self.client.create_payment(
             payee_payment_reference='0123456789',
             callback_url='https://example.com/api/swishcb/paymentrequests',
-            instructionUUID=str(uuid4()).replace("-","").upper(),
+            instructionUUID=the_uuid,
             payer_alias=payer_alias,
             amount=100,
             currency='SEK',
             message='Kingston USB Flash Drive 8 GB'
         )
+
         self.assertIsNotNone(payment.id)
+        self.assertEqual(the_uuid, payment.id)
         self.assertIsNotNone(payment.location)
 
     def test_create_payment_mcommerce(self):
+        the_uuid = str(uuid4()).replace("-","").upper()
         payment = self.client.create_payment(
             payee_payment_reference='0123456789',
             callback_url='https://example.com/api/swishcb/paymentrequests',
-            instructionUUID=str(uuid4()).replace("-","").upper(),
+            instructionUUID=the_uuid,
             amount=100,
             currency='SEK',
             message='Kingston USB Flash Drive 8 GB'
         )
         self.assertIsNotNone(payment.id)
+        self.assertEqual(the_uuid, payment.id)
         self.assertIsNotNone(payment.location)
         self.assertIsNotNone(payment.request_token)
 
@@ -74,6 +79,7 @@ class SwishClientTestCase(unittest.TestCase):
             message='Kingston USB Flash Drive 8 GB'
         )
         payment = self.client.get_payment(the_uuid)
+        self.assertEqual(the_uuid, payment.id)
         self.assertEqual(payment.payee_payment_reference, '0123456789')
         self.assertEqual(payment.callback_url, 'https://example.com/api/swishcb/paymentrequests')
         self.assertEqual(payment.amount, 100)
@@ -81,51 +87,57 @@ class SwishClientTestCase(unittest.TestCase):
         self.assertEqual(payment.message, 'Kingston USB Flash Drive 8 GB')
 
     def test_create_refund(self):
-        the_uuid = str(uuid4()).replace("-","").upper()
+        the_first_uuid = str(uuid4()).replace("-","").upper()
         payment_request = self.client.create_payment(
             payee_payment_reference='0123456789',
             callback_url='https://example.com/api/swishcb/paymentrequests',
-            instructionUUID=the_uuid,
+            instructionUUID=the_first_uuid,
             amount=100,
             currency='SEK',
             message='Kingston USB Flash Drive 8 GB'
         )
         time.sleep(5)
         payment = self.client.get_payment(payment_request.id)
+        the_second_uuid = str(uuid4()).replace("-","").upper()
         refund = self.client.create_refund(
             original_payment_reference=payment.payment_reference,
             amount=100,
             currency='SEK',
             callback_url='https://example.com/api/swishcb/refunds',
-            instructionUUID=the_uuid,
+            instructionUUID=the_second_uuid,
             payer_payment_reference='0123456789',
             message='Refund for Kingston USB Flash Drive 8 GB'
         )
         self.assertIsNotNone(refund.id)
+        self.assertEqual(the_first_uuid, payment_request.id)
+        self.assertEqual(the_second_uuid, refund.id)
         self.assertIsNotNone(refund.location)
 
     def test_get_refund(self):
-        the_uuid = str(uuid4()).replace("-","").upper()
+        the_first_uuid = str(uuid4()).replace("-","").upper()
         payment_request = self.client.create_payment(
             payee_payment_reference='0123456789',
             callback_url='https://example.com/api/swishcb/paymentrequests',
-            instructionUUID=the_uuid,
+            instructionUUID=the_first_uuid,
             amount=100,
             currency='SEK',
             message='Kingston USB Flash Drive 8 GB'
         )
         time.sleep(5)
         payment = self.client.get_payment(payment_request.id)
+        the_second_uuid = str(uuid4()).replace("-","").upper()
         refund_request = self.client.create_refund(
             original_payment_reference=payment.payment_reference,
             amount=100,
             currency='SEK',
             callback_url='https://example.com/api/swishcb/refunds',
-            instructionUUID=the_uuid,
+            instructionUUID=the_second_uuid,
             payer_payment_reference='0123456789',
             message='Refund for Kingston USB Flash Drive 8 GB'
         )
         refund = self.client.get_refund(refund_request.id)
+        self.assertEqual(the_first_uuid, payment_request.id)
+        self.assertEqual(the_second_uuid, refund_request.id)
         self.assertEqual(refund.original_payment_reference, payment.payment_reference)
         self.assertEqual(refund.callback_url, 'https://example.com/api/swishcb/refunds')
         self.assertEqual(refund.amount, 100)
